@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14211f">
+<title>Pip calculator</title>
+<style>
+:root{--bg:#eef1f0;--card:#fff;--ink:#14211f;--mute:#566764;--line:#d3dbd9;--field:#f6f8f7;--buy:#0f766e;--sell:#b4362f;--on:#fff;--warn:#7a4a00;--warnbg:#fff1cf}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1514;--card:#17211f;--ink:#e5eeec;--mute:#93a6a2;--line:#2a3935;--field:#101918;--buy:#38c2b4;--sell:#f08279;--on:#07201d;--warn:#f2c05e;--warnbg:#38290c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 "Avenir Next","Segoe UI",system-ui,sans-serif;font-variant-numeric:tabular-nums;padding:16px 16px 32px}
+.wrap{max-width:900px;margin:0 auto}
+h1{font-size:1.2rem;font-weight:650;margin:4px 0 14px}
+.grid{display:grid;gap:14px}
+@media(min-width:760px){.grid{grid-template-columns:1fr 1fr;align-items:start}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+label{display:block;font-size:.85rem;color:var(--mute);margin:12px 0 4px}
+label:first-child{margin-top:0}
+input,select{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--ink)}
+:focus-visible{outline:2px solid var(--buy);outline-offset:2px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;border:0;background:var(--field);color:var(--mute);font:inherit;padding:9px 6px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--card)}
+.seg.side button[aria-pressed=true].buy{background:var(--buy);color:var(--on)}
+.seg.side button[aria-pressed=true].sell{background:var(--sell);color:var(--on)}
+.seg.locked button{cursor:default}
+.hint{font-size:.8rem;color:var(--mute);margin:4px 0 0}
+.lotrow{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+.lot{font-size:3.6rem;font-weight:700;line-height:1;letter-spacing:-.02em}
+.lot small{font-size:1rem;font-weight:500;color:var(--mute);letter-spacing:0;margin-left:6px}
+#copy{border:1px solid var(--line);background:var(--field);color:var(--ink);font:inherit;padding:9px 14px;border-radius:8px;cursor:pointer}
+#copy:disabled{opacity:.4;cursor:default}
+.meter{height:6px;background:var(--line);border-radius:3px;margin:14px 0 6px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--buy)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:14px 0 0}
+dt{color:var(--mute)}
+dd{margin:0;text-align:right}
+.sell-t{color:var(--sell)}.buy-t{color:var(--buy)}
+.note{background:var(--warnbg);color:var(--warn);border-radius:8px;padding:10px 12px;margin-top:12px;font-size:.92rem}
+.note:empty{display:none}
+footer{margin-top:14px;font-size:.8rem;color:var(--mute)}
+@media(prefers-reduced-motion:no-preference){.meter i{transition:width .2s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Pip calculator</h1>
+<div class="grid">
+
+<section class="card" aria-label="Trade inputs">
+  <label for="pair">Instrument</label>
+  <select id="pair">
+    <option>XAUUSD</option><option>XAGUSD</option><option>GBPUSD</option><option>EURUSD</option><option>UK100</option>
+  </select>
+
+  <div class="row">
+    <div><label for="bal">Balance (USD)</label><input id="bal" type="number" inputmode="decimal" step="any" min="0"></div>
+    <div><label for="risk">Risk %</label><input id="risk" type="number" inputmode="decimal" step="any" min="0"></div>
+  </div>
+
+  <div class="row">
+    <div><label for="rr">Reward : risk</label><input id="rr" type="number" inputmode="decimal" step="any" min="0"></div>
+    <div><label for="entry">Entry price (optional)</label><input id="entry" type="number" inputmode="decimal" step="any"></div>
+  </div>
+
+  <label id="sidelbl">Direction</label>
+  <div class="seg side" id="side" role="group" aria-labelledby="sidelbl">
+    <button type="button" class="buy" data-v="buy" aria-pressed="true">Buy</button>
+    <button type="button" class="sell" data-v="sell" aria-pressed="false">Sell</button>
+  </div>
+  <p class="hint" id="sidehint"></p>
+
+  <label id="modelbl">Stop-loss given as</label>
+  <div class="seg" id="mode" role="group" aria-labelledby="modelbl">
+    <button type="button" data-v="price" aria-pressed="true">Price</button>
+    <button type="button" data-v="dist" aria-pressed="false">Distance</button>
+    <button type="button" data-v="pips" aria-pressed="false">Pips</button>
+  </div>
+  <label for="sl" id="sllbl">Stop-loss price</label>
+  <input id="sl" type="number" inputmode="decimal" step="any" min="0">
+  <p class="hint" id="slhint"></p>
+
+  <div id="fxbox" hidden>
+    <label for="fx">GBP to USD rate (for UK100)</label>
+    <input id="fx" type="number" inputmode="decimal" step="any" min="0">
+    <p class="hint" id="fxnote"></p>
+  </div>
+</section>
+
+<section class="card" aria-live="polite" aria-label="Result">
+  <div class="lotrow">
+    <div class="lot"><span id="lot">&ndash;</span><small>lots</small></div>
+    <button type="button" id="copy" disabled>Copy</button>
+  </div>
+  <div class="meter" aria-hidden="true"><i id="bar"></i></div>
+  <div class="hint" id="used">Fill in the fields to see your lot size.</div>
+  <dl id="rows"></dl>
+  <div class="note" id="msg"></div>
+</section>
+
+</div>
+<footer>Lot size rounds down to 0.01 steps so risk never goes over your limit. Check the contract sizes against your broker&rsquo;s symbol specification; UK100 assumes &pound;1 per point per 1.00 lot.</footer>
+</div>
+
+<script>
+const INS={
+  GBPUSD:{p:.0001,v:10,d:5,u:"pips"},
+  EURUSD:{p:.0001,v:10,d:5,u:"pips"},
+  XAUUSD:{p:.1,v:10,d:2,u:"pips"},
+  XAGUSD:{p:.01,v:50,d:3,u:"pips"},
+  UK100:{p:1,v:null,d:1,u:"pts"}
+};
+const LOT_STEP=0.01, MIN_LOT=0.01, FX_TTL=12*3600*1000;
+const $=id=>document.getElementById(id);
+const store={
+  get(k){try{return localStorage.getItem(k)}catch(e){return null}},
+  set(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+};
+let side="buy", mode="price", lastLot="";
+
+const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?NaN:v};
+const usd=x=>"$"+x.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+
+function setSeg(id,val,disabled){
+  const box=$(id);
+  box.classList.toggle("locked",!!disabled);
+  box.querySelectorAll("button").forEach(b=>{
+    b.setAttribute("aria-pressed",String(b.dataset.v===val));
+    b.disabled=!!disabled && id==="side";
+  });
+}
+
+function setMode(m){
+  mode=m;
+  setSeg("mode",m);
+  const t={price:["Stop-loss price","Enter the price where your stop sits. Needs an entry price; direction is worked out for you."],
+           dist:["Stop-loss distance (price units)","Size of the move, e.g. 5 on gold means a $5 move."],
+           pips:["Stop-loss distance (pips)","Pips for forex and metals, points for UK100."]}[m];
+  $("sllbl").textContent=t[0]; $("slhint").textContent=t[1];
+  store.set("mode",m);
+  calc();
+}
+
+function reset(msg){
+  $("lot").textContent="\u2013"; lastLot=""; $("copy").disabled=true;
+  $("bar").style.width="0"; $("rows").innerHTML="";
+  $("used").textContent=msg||"Fill in the fields to see your lot size.";
+  $("msg").textContent="";
+}
+
+function calc(){
+  const pair=$("pair").value, s=INS[pair];
+  $("fxbox").hidden=pair!=="UK100";
+  const bal=num("bal"), riskPct=num("risk"), rr=num("rr"), entry=num("entry"), sl=num("sl");
+  const pv=pair==="UK100"?num("fx"):s.v;
+  let sd=side;
+
+  // side follows the stop when both prices are known
+  const auto=mode==="price"&&!isNaN(entry)&&!isNaN(sl)&&entry!==sl;
+  if(auto){sd=sl<entry?"buy":"sell";side=sd;}
+  setSeg("side",side,auto);
+  $("sidehint").textContent=auto?"Set automatically from where your stop is.":"";
+
+  if(!(bal>0)||!(riskPct>0)||!(rr>0)) return reset("Enter balance, risk % and reward : risk.");
+  if(!(pv>0)) return reset("Enter the GBP to USD rate.");
+  let dist;
+  if(mode==="price"){
+    if(isNaN(entry)) return reset("Enter your entry price to use a stop-loss price.");
+    if(isNaN(sl)) return reset("Enter your stop-loss price.");
+    if(entry===sl) return reset("The stop-loss is the same as the entry price.");
+    dist=Math.abs(entry-sl);
+  }else{
+    if(!(sl>0)) return reset("Enter a stop-loss distance above zero.");
+    dist=mode==="dist"?sl:sl*s.p;
+  }
+
+  const pips=dist/s.p, maxRisk=bal*riskPct/100;
+  const exact=maxRisk/(pips*pv);
+  const lot=Math.round(Math.floor(exact/LOT_STEP+1e-9)*LOT_STEP*100)/100;
+  $("rows").innerHTML=""; $("msg").textContent="";
+
+  if(lot<MIN_LOT){
+    const minRisk=MIN_LOT*pips*pv;
+    reset(`Exact size is ${exact.toFixed(4)} lots, under the ${MIN_LOT.toFixed(2)} minimum.`);
+    $("msg").textContent=`This stop is too wide for ${usd(maxRisk)} of risk. The minimum lot would risk ${usd(minRisk)} (${(minRisk/bal*100).toFixed(2)}% of your balance). Tighten the stop, raise the risk %, or skip the trade.`;
+    return;
+  }
+
+  const actual=lot*pips*pv, reward=actual*rr, tpDist=dist*rr, tpPips=pips*rr;
+  lastLot=lot.toFixed(2);
+  $("lot").textContent=lastLot; $("copy").disabled=false; $("copy").textContent="Copy";
+  $("bar").style.width=Math.min(100,actual/maxRisk*100)+"%";
+  $("used").textContent=`Using ${usd(actual)} of your ${usd(maxRisk)} risk limit (${(actual/bal*100).toFixed(2)}% of balance).`;
+
+  const rows=[
+    ["Risk if stopped out",usd(actual)],
+    ["Target profit",usd(reward)],
+    ["Stop distance",`${dist.toFixed(s.d)} (${+pips.toFixed(2)} ${s.u})`],
+    ["Target distance",`${tpDist.toFixed(s.d)} (${+tpPips.toFixed(2)} ${s.u})`]
+  ];
+  if(!isNaN(entry)){
+    const slp=sd==="buy"?entry-dist:entry+dist, tpp=sd==="buy"?entry+tpDist:entry-tpDist;
+    rows.push(["Entry",entry.toFixed(s.d)],["Stop-loss price",slp.toFixed(s.d)],["Take-profit price",tpp.toFixed(s.d)]);
+  }
+  rows.unshift(["Direction",`<span class="${sd}-t">${sd==="buy"?"Buy":"Sell"}</span>`]);
+  $("rows").innerHTML=rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("");
+}
+
+async function copyLot(){
+  if(!lastLot) return;
+  try{await navigator.clipboard.writeText(lastLot);}
+  catch(e){
+    const t=document.createElement("textarea");t.value=lastLot;document.body.appendChild(t);t.select();
+    try{document.execCommand("copy")}catch(_){}
+    t.remove();
+  }
+  $("copy").textContent="Copied";
+  setTimeout(()=>{if(lastLot)$("copy").textContent="Copy"},1400);
+}
+
+async function loadFx(){
+  const cached=parseFloat(store.get("fx")), ts=+store.get("fxts")||0;
+  $("fx").value=cached>0?cached:1.27;
+  if(cached>0&&Date.now()-ts<FX_TTL){$("fxnote").textContent="Saved rate, under 12 hours old. You can edit it.";return calc();}
+  try{
+    const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),3000);
+    const r=await fetch("https://open.er-api.com/v6/latest/GBP",{signal:ctl.signal});
+    clearTimeout(to);
+    const v=(await r.json()).rates.USD;
+    if(!(v>0)) throw 0;
+    $("fx").value=v.toFixed(4); store.set("fx",v); store.set("fxts",Date.now());
+    $("fxnote").textContent="Live rate just fetched. You can edit it.";
+  }catch(e){
+    $("fxnote").textContent=cached>0?"Could not fetch a live rate, using your last saved one.":"Could not fetch a live rate, using 1.27. Please check it.";
+  }
+  calc();
+}
+
+// start-up
+$("pair").value=store.get("pair")||"XAUUSD";
+$("bal").value=store.get("bal")||1000;
+$("risk").value=store.get("risk")||1;
+$("rr").value=store.get("rr")||3;
+["pair","bal","risk","rr"].forEach(id=>$(id).addEventListener("input",()=>{
+  store.set(id,$(id).value);
+  if(id==="pair"&&$("pair").value==="UK100"&&!$("fx").value) loadFx();
+  calc();
+}));
+["entry","sl","fx"].forEach(id=>$(id).addEventListener("input",calc));
+$("side").addEventListener("click",e=>{const b=e.target.closest("button");if(!b||b.disabled)return;side=b.dataset.v;calc();});
+$("mode").addEventListener("click",e=>{const b=e.target.closest("button");if(b)setMode(b.dataset.v);});
+$("copy").addEventListener("click",copyLot);
+setMode(store.get("mode")||"price");
+if($("pair").value==="UK100") loadFx();
+</script>
+</body>
+</html>
