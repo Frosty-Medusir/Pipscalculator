@@ -1,0 +1,2 @@
+# Pipscalculator
+Calculate pips
