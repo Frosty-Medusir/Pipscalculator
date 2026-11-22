@@ -9,7 +9,7 @@ import time
 import urllib.request
 from datetime import datetime
 
-LOG_FILE = os.path.expanduser("~/Downloads/pipscalculator/trades_log.csv")
+LOG_FILE = os.path.expanduser("~/Downloads/Pipscalculator/trades_log.csv")
 CONFIG_FILE = os.path.expanduser("~/.pipcalc_config.json")
 CACHE_TTL = 43200  # 12 hours
 

@@ -4,8 +4,8 @@ A zero-dependency Python CLI tool for pre-session Forex and Gold (XAUUSD) positi
 
 ## Setup
 
-    chmod +x ~/Downloads/pipscalculator/pipcalc.py
-    echo 'alias pipcalc="python3 ~/Downloads/pipscalculator/pipcalc.py"' >> ~/.zshrc
+    chmod +x ~/Downloads/Pipscalculator/pipcalc.py
+    echo 'alias pipcalc="python3 ~/Downloads/Pipscalculator/pipcalc.py"' >> ~/.zshrc
     source ~/.zshrc
 
 ## Usage
